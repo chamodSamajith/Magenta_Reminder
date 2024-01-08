@@ -11,12 +11,18 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
 
 const COLORS = { primary: '#1f145c', white: '#fff' };
 
 const App = () => {
   const [todos, setTodos] = useState([]);
   const [textInput, setTextInput] = useState('');
+  const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showClock, setShowClock] = useState(false);
+  const [selctedTime, setSelectedTime] = useState(new Date());
 
   useEffect(() => {
     getTodosFromUserDevice();
@@ -30,13 +36,46 @@ const App = () => {
     if (textInput === '') {
       Alert.alert('Error', 'Please input todo');
     } else {
+
+      const hours = selctedTime.getHours();
+      const minutes = selctedTime.getMinutes();
+      console.log("timeis ", hours, minutes)
+
       const newTodo = {
         id: Math.random(),
         task: textInput,
         completed: false,
+        date: selectedDate.toLocaleString(),
+        time: `${hours}:${minutes}`
       };
+
       setTodos((prevTodos) => [...prevTodos, newTodo]);
       setTextInput('');
+      setSelectedDate(new Date());
+      setShowDateTimePicker(false);
+      setShowClock(false)
+      setSelectedTime(new Date())
+    }
+  };
+
+  const showClockFn = () => {
+    setShowClock(true)
+  }
+
+  const showDateTimePickerFn = () => {
+    setShowDateTimePicker(true);
+  };
+
+  const handleTimeChange = (e, selctedTime) => {
+    setShowClock(false);
+    if (selctedTime) {
+      setSelectedTime(selctedTime);
+    }
+  }
+  const handleDateChange = (event, selectedDate) => {
+    setShowDateTimePicker(false);
+    if (selectedDate) {
+      setSelectedDate(selectedDate);
     }
   };
 
@@ -84,34 +123,36 @@ const App = () => {
     ]);
   };
 
-  const ListItem = ({ todo }) => (
-    <View style={styles.listItem}>
-      <View style={{ flex: 1 }}>
-        <Text
-          style={{
-            fontWeight: 'bold',
-            fontSize: 15,
-            color: COLORS.primary,
-            textDecorationLine: todo && todo.completed ? 'line-through' : 'none',
-          }}
-        >
-          {todo && todo.task}
-        </Text>
-      </View>
-      {!todo || !todo.completed && (
-        <TouchableOpacity onPress={() => markTodoComplete(todo.id)}>
-          <View style={[styles.actionIcon, { backgroundColor: 'green' }]}>
-            <Icon name="done" size={20} color="white" />
+  const ListItem = ({ todo }) => {
+    return (
+      <View style={styles.listItem}>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              fontWeight: 'bold',
+              fontSize: 15,
+              color: COLORS.primary,
+              textDecorationLine: todo && todo.completed ? 'line-through' : 'none',
+            }}
+          >
+            {console.log(todo.time)}
+            {todo && todo.task} AT {todo && `${todo.date.split(", ")[0]}  ${todo.time}`}
+          </Text>
+        </View>
+        {!todo || !todo.completed && (
+          <TouchableOpacity onPress={() => markTodoComplete(todo.id)}>
+            <View style={[styles.actionIcon, { backgroundColor: 'green' }]}>
+              <Icon name="done" size={20} color="white" />
+            </View>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={() => deleteTodo(todo.id)}>
+          <View style={styles.actionIcon}>
+            <Icon name="delete" size={20} color="white" />
           </View>
         </TouchableOpacity>
-      )}
-      <TouchableOpacity onPress={() => deleteTodo(todo.id)}>
-        <View style={styles.actionIcon}>
-          <Icon name="delete" size={20} color="white" />
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
+      </View>)
+  };
 
   return (
     <SafeAreaView
@@ -128,7 +169,7 @@ const App = () => {
             color: COLORS.primary,
           }}
         >
-          TODO APP
+          MY APPOINMENTS
         </Text>
         <Icon name="delete" size={25} color="red" onPress={clearAllTodos} />
       </View>
@@ -138,8 +179,20 @@ const App = () => {
         data={todos}
         renderItem={({ item }) => <ListItem todo={item} />}
       />
-
       <View style={styles.footer}>
+        {/* calander */}
+        <TouchableOpacity onPress={showDateTimePickerFn}>
+          <View style={[styles.iconContainer, { backgroundColor: COLORS.primary }]}>
+            <Icon name="event" color="white" size={24} />
+          </View>
+        </TouchableOpacity>
+        {/* clock */}
+        <TouchableOpacity onPress={showClockFn}>
+          <View style={[styles.iconContainer, { backgroundColor: COLORS.primary, marginLeft: 2 }]}>
+            <Icon name="access-alarm" color="white" size={24} />
+          </View>
+        </TouchableOpacity>
+        {/* text input */}
         <View style={styles.inputContainer}>
           <TextInput
             value={textInput}
@@ -147,12 +200,39 @@ const App = () => {
             onChangeText={(text) => setTextInput(text)}
           />
         </View>
+        {/* add button */}
         <TouchableOpacity onPress={addTodo}>
-          <View style={styles.iconContainer}>
-            <Icon name="add" color="white" size={30} />
+          <View style={[styles.iconContainer, { backgroundColor: COLORS.primary }]}>
+            <Icon name="add-circle" color="white" size={30} />
           </View>
         </TouchableOpacity>
       </View>
+
+      {showDateTimePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          is24Hour={false}
+          mode="date"
+          display="spinner"
+          onChange={handleDateChange}
+        />
+      )}
+
+      {
+        showClock && (
+          <DateTimePicker
+            value={selctedTime}
+            mode="time"
+            is24Hour={false}
+            display="spinner"
+            onChange={handleTimeChange}
+          />
+        )
+      }
+
+
+
+
     </SafeAreaView>
   );
 };
@@ -164,7 +244,7 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     backgroundColor: COLORS.white,
   },
   inputContainer: {
